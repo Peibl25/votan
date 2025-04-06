@@ -1,40 +1,47 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Resultados</title>
+  <meta charset="UTF-8" />
+  <title>Resultados de la Votación</title>
   <style>
     body { font-family: sans-serif; text-align: center; padding: 20px; }
     .grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; }
-    .card { border: 1px solid #ccc; padding: 10px; width: 150px; border-radius: 10px; }
-    img { width: 100%; border-radius: 10px; }
+    .card { border: 1px solid #ccc; padding: 10px; width: 180px; border-radius: 10px; }
+    img { width: 100%; border-radius: 8px; }
   </style>
 </head>
 <body>
-  <h1>Resultados de la votación</h1>
+  <h1>Resultados de la Votación</h1>
   <div class="grid" id="resultados"></div>
+
   <script>
-    fetch('/api/votos')
+    fetch('votos.json')
       .then(res => res.json())
       .then(data => {
         const conteo = {};
-        data.forEach(nombre => conteo[nombre] = (conteo[nombre] || 0) + 1);
+        data.forEach(nombre => {
+          conteo[nombre] = (conteo[nombre] || 0) + 1;
+        });
 
         const resultados = Object.entries(conteo).sort((a, b) => b[1] - a[1]);
+
         const contenedor = document.getElementById("resultados");
 
         resultados.forEach(([nombre, votos]) => {
           const nombreArchivo = nombre.toLowerCase().replace(/ /g, "_") + ".jpeg";
           const div = document.createElement("div");
           div.className = "card";
-          div.innerHTML = \`
-            <img src="pdf_images/\${nombreArchivo}" alt="\${nombre}">
-            <div><strong>\${nombre}</strong></div>
-            <div>\${votos} voto(s)</div>
-          \`;
+          div.innerHTML = `
+            <img src="pdf_images/${nombreArchivo}" alt="${nombre}">
+            <h3>${nombre}</h3>
+            <p>${votos} voto(s)</p>
+          `;
           contenedor.appendChild(div);
         });
+      })
+      .catch(error => {
+        document.getElementById("resultados").innerHTML = "<p>Error al cargar los resultados.</p>";
+        console.error("Error cargando votos.json:", error);
       });
   </script>
 </body>
