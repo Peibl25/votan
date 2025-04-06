@@ -1,0 +1,226 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Votación confiable</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    .grid { display: flex; flex-wrap: wrap; gap: 20px; }
+    .card {
+      border: 3px solid transparent;
+      border-radius: 8px;
+      width: 180px;
+      cursor: pointer;
+      text-align: center;
+      transition: border 0.3s;
+    }
+    .card img {
+      width: 100%;
+      height: 240px;
+      object-fit: cover;
+      border-radius: 8px;
+    }
+    .card.selected {
+      border-color: #007BFF;
+    }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+
+  <h2 id="select-title">Seleccioná 5 nominadas</h2>
+  <div class="grid" id="cards-container"></div>
+
+  <div id="voting-section" class="hidden">
+    <h2>Votación</h2>
+    <h3 id="voter-name"></h3>
+        <div id="voter-photo" style="margin-bottom:20px;"></div>
+        <h4>Por:</h4>
+    <div id="vote-options" class="grid"></div>
+  </div>
+
+  <div id="results" class="hidden">
+    <h3>Resultados finales</h3>
+    <ul id="results-list"></ul>
+    <h3>Revelación de votos</h3>
+    <ul id="reveal-list"></ul>
+  </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const allParticipants = ['Andrea Bazarte', 'Natali Rodriguez', 'Osmariel Villalobos', 'Brittany Marroquin', 'Azalia Arredondo', 'Elba Mendoza', 'Lidia Venegas', 'Erika Marchena', 'Skarxi Marte', 'Jelissa Hernandez', 'Maylin Hernandez', 'Estefania Flores', 'Daniela Castaño', 'Genesis Davila', 'Giorgiana Rosas', 'Giselle Burgos', 'Marcela Delgado', 'Nitza Valdez', 'Gemmy Quelliz'];
+  const participantImages = {'Andrea Bazarte': 'page1_img1.jpeg', 'Natali Rodriguez': 'page1_img3.jpeg', 'Osmariel Villalobos': 'page1_img5.jpeg', 'Brittany Marroquin': 'page1_img7.jpeg', 'Azalia Arredondo': 'page1_img9.jpeg', 'Elba Mendoza': 'page1_img10.jpeg', 'Lidia Venegas': 'page1_img11.jpeg', 'Erika Marchena': 'page1_img12.jpeg', 'Skarxi Marte': 'page1_img13.jpeg', 'Jelissa Hernandez': 'page1_img15.jpeg', 'Maylin Hernandez': 'page2_img1.jpeg', 'Estefania Flores': 'page2_img2.jpeg', 'Daniela Castaño': 'page2_img3.jpeg', 'Genesis Davila': 'page2_img5.jpeg', 'Giorgiana Rosas': 'page2_img7.jpeg', 'Giselle Burgos': 'page2_img10.jpeg', 'Marcela Delgado': 'page2_img11.jpeg', 'Nitza Valdez': 'page2_img12.jpeg', 'Gemmy Quelliz': 'page2_img13.jpeg'};
+  const selected = [];
+  let candidates = [];
+  let voters = [];
+  const votes = {};
+  const voteRecords = [];
+  let currentVoterIndex = 0;
+
+  const container = document.getElementById("cards-container");
+
+  allParticipants.forEach(name => {
+    const card = document.createElement("div");
+    card.className = "card";
+    card.setAttribute("data-name", name);
+    const img = document.createElement("img");
+    img.src = "pdf_images/" + participantImages[name];
+    const label = document.createElement("p");
+    label.textContent = name;
+    card.appendChild(img);
+    card.appendChild(label);
+    container.appendChild(card);
+
+    card.addEventListener("click", () => {
+      if (card.classList.contains("selected")) {
+        card.classList.remove("selected");
+        const index = selected.indexOf(name);
+        if (index !== -1) selected.splice(index, 1);
+      } else {
+        if (selected.length >= 5) {
+          alert("Solo podés elegir 5 nominadas.");
+          return;
+        }
+        card.classList.add("selected");
+        selected.push(name);
+        if (selected.length === 5) {
+          startVoting();
+        }
+      }
+    });
+  });
+
+  function startVoting() {
+    candidates = [...selected];
+    voters = allParticipants.filter(n => !candidates.includes(n));
+    candidates.forEach(name => votes[name] = 0);
+
+    document.getElementById("cards-container").style.display = "none";
+document.getElementById("select-title").style.display = "none";
+    document.getElementById("voting-section").classList.remove("hidden");
+    showNextVoter();
+  }
+
+  function showNextVoter() {
+    if (currentVoterIndex >= voters.length) {
+      showResults();
+      return;
+    }
+    const voter = voters[currentVoterIndex];
+    document.getElementById("voter-name").textContent = "Vota: " + voter;
+    document.getElementById("voter-photo").innerHTML = 
+      '<img src="pdf_images/' + participantImages[voter] + '" style="width:180px;">';
+
+    const voteContainer = document.getElementById("vote-options");
+    voteContainer.innerHTML = "";
+
+    candidates.forEach(name => {
+      const card = document.createElement("div");
+      card.className = "card";
+      const img = document.createElement("img");
+      img.src = "pdf_images/" + participantImages[name];
+      const label = document.createElement("p");
+      label.textContent = name;
+      card.appendChild(img);
+      card.appendChild(label);
+      card.onclick = () => {
+        votes[name]++;
+        voteRecords.push([voter, name]);
+        currentVoterIndex++;
+        showNextVoter();
+      };
+      voteContainer.appendChild(card);
+    });
+  }
+
+  function showResults() {
+    document.getElementById("voting-section").classList.add("hidden");
+    document.getElementById("results").classList.remove("hidden");
+
+    const resultsList = document.getElementById("results-list");
+    Object.entries(votes).sort((a, b) => b[1] - a[1])
+      .forEach(([name, count]) => {
+        const li = document.createElement("li");
+        li.textContent = name + ": " + count + " voto(s)";
+        resultsList.appendChild(li);
+      });
+
+    const winner = Object.entries(votes).sort((a, b) => b[1] - a[1])[0][0];
+    const votesForWinner = voteRecords.filter(v => v[1] === winner);
+    const lastVote = votesForWinner.pop();
+    const others = voteRecords.filter(v => v !== lastVote);
+    const revealOrder = [...others.sort(() => Math.random() - 0.5), lastVote];
+
+    const revealList = document.getElementById("reveal-list");
+    revealOrder.forEach(([voter, voted]) => {
+      const li = document.createElement("li");
+      li.textContent = voter + " votó por " + voted;
+      revealList.appendChild(li);
+    });
+  }
+
+
+  function showResults() {
+    document.getElementById("voting-section").classList.add("hidden");
+    document.getElementById("results").classList.remove("hidden");
+
+    const resultsList = document.getElementById("results-list");
+    Object.entries(votes).sort((a, b) => b[1] - a[1])
+      .forEach(([name, count]) => {
+        const li = document.createElement("li");
+        li.textContent = name + ": " + count + " voto(s)";
+        resultsList.appendChild(li);
+      });
+
+    const tally = {};
+    voteRecords.forEach(([_, voted]) => {
+      tally[voted] = (tally[voted] || 0) + 1;
+    });
+
+    const top3 = Object.entries(tally).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k]) => k);
+    const winner = Object.entries(tally).sort((a, b) => b[1] - a[1])[0][0];
+
+    const grouped = {};
+    voteRecords.forEach(([voter, voted]) => {
+      if (!grouped[voted]) grouped[voted] = [];
+      grouped[voted].push([voter, voted]);
+    });
+
+    const remaining = {};
+    for (const name in grouped) {
+      remaining[name] = [...grouped[name]];
+    }
+
+    const finalVote = remaining[winner].pop();  // último voto para desenlace
+
+    const revealOrder = [];
+    while (Object.values(remaining).some(arr => arr.length > 0)) {
+      for (const name of top3) {
+        if (remaining[name]?.length > 0) {
+          revealOrder.push(remaining[name].shift());
+        }
+      }
+      for (const name in remaining) {
+        if (!top3.includes(name) && remaining[name]?.length > 0) {
+          revealOrder.push(remaining[name].shift());
+        }
+      }
+    }
+
+    revealOrder.push(finalVote);
+
+    const revealList = document.getElementById("reveal-list");
+    revealOrder.forEach(([voter, voted]) => {
+      const li = document.createElement("li");
+      li.textContent = voter + " votó por " + voted;
+      revealList.appendChild(li);
+    });
+  }
+
+});
+</script>
+
+
+</body>
+</html>
